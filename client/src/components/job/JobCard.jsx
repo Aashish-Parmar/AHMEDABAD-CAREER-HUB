@@ -1,0 +1,1 @@
+// JobCard.jsx content placeholder

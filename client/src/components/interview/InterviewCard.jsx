@@ -1,0 +1,1 @@
+// InterviewCard.jsx content placeholder

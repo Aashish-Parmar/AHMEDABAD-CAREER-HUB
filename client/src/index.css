@@ -1,0 +1,33 @@
+@import "tailwindcss";
+
+
+@keyframes fadeInUp {
+  0% {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes glowingBorder {
+  0% {
+    box-shadow: 0 0 10px rgba(59, 130, 246, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(59, 130, 246, 0.5);
+  }
+  100% {
+    box-shadow: 0 0 10px rgba(59, 130, 246, 0.3);
+  }
+}
+
+.fade-in-up {
+  animation: fadeInUp 0.8s ease-out both;
+}
+
+.glow-border {
+  animation: glowingBorder 3s ease-in-out infinite;
+}

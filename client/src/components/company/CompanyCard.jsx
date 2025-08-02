@@ -1,0 +1,1 @@
+// CompanyCard.jsx content placeholder
