@@ -113,14 +113,37 @@ const Navbar = () => {
           {isLoggedIn ? (
             <>
               {user?.role === "recruiter" && (
-                <Link
-                  to="/post-job"
-                  className="relative group font-medium py-1 px-2 text-green-700 hover:text-green-900 transition-colors duration-200"
-                  onClick={handleNavClick}
-                >
-                  Post Job
-                  <span className="nav-gradient-line group-hover:opacity-100" />
-                </Link>
+                <>
+                  {user?.company ? (
+                    <Link
+                      to="/my-company"
+                      className="relative group font-medium py-1 px-2 text-purple-700 hover:text-purple-900 transition-colors duration-200"
+                      onClick={handleNavClick}
+                    >
+                      My Company
+                      <span className="nav-gradient-line group-hover:opacity-100" />
+                    </Link>
+                  ) : (
+                    <Link
+                      to="/create-company"
+                      className="relative group font-medium py-1 px-2 text-yellow-700 hover:text-yellow-900 transition-colors duration-200"
+                      onClick={handleNavClick}
+                    >
+                      Create Company
+                      <span className="nav-gradient-line group-hover:opacity-100" />
+                    </Link>
+                  )}
+                  {user?.company && (
+                    <Link
+                      to="/post-job"
+                      className="relative group font-medium py-1 px-2 text-green-700 hover:text-green-900 transition-colors duration-200"
+                      onClick={handleNavClick}
+                    >
+                      Post Job
+                      <span className="nav-gradient-line group-hover:opacity-100" />
+                    </Link>
+                  )}
+                </>
               )}
               <Link
                 to="/Dashboard"

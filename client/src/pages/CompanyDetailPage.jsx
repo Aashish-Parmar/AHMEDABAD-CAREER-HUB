@@ -48,8 +48,11 @@ const CompanyDetailPage = () => {
     const fetchJobs = async () => {
       try {
         const res = await api.get(`/jobs?company=${id}`);
-        setJobs(res.data);
-      } catch {
+        // Handle both old format (array) and new format (object with jobs and pagination)
+        const jobsData = Array.isArray(res.data) ? res.data : (res.data.jobs || []);
+        setJobs(jobsData);
+      } catch (err) {
+        console.error("Error fetching jobs:", err);
         setJobs([]);
       }
       setJobsLoading(false);
@@ -58,14 +61,17 @@ const CompanyDetailPage = () => {
       try {
         const token = localStorage.getItem("accessToken");
         if (token) {
-          const res = await api.get(`/interviews/${id}`, {
+          // Updated route: /interviews/company/:companyId
+          const res = await api.get(`/interviews/company/${id}`, {
             headers: { Authorization: `Bearer ${token}` },
           });
-          setInterviews(res.data);
+          // Handle both array and object format
+          setInterviews(Array.isArray(res.data) ? res.data : (res.data.interviews || []));
         } else {
           setInterviews([]);
         }
-      } catch {
+      } catch (err) {
+        console.error("Error fetching interviews:", err);
         setInterviews([]);
       }
       setInterviewsLoading(false);

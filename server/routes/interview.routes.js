@@ -7,6 +7,7 @@ const authMiddleware = require('../middleware/auth.middleware');
 router.post('/', authMiddleware, interviewController.submitInterview);
 
 // Protected: Student fetches all interviews for a company
-router.get('/:companyId', authMiddleware, interviewController.getCompanyInterviews);
+// Using /company/:companyId to avoid route conflicts
+router.get('/company/:companyId', authMiddleware, interviewController.getCompanyInterviews);
 
 module.exports = router;

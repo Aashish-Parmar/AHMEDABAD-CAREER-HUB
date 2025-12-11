@@ -7,8 +7,20 @@ import axios from "axios";
 //   withCredentials: false // enable if you use cookies for auth
 // });
 
+// Determine base URL based on environment
+const getBaseURL = () => {
+  // If VITE_BACKEND_URL is explicitly set, use it
+  if (import.meta.env.VITE_BACKEND_URL) {
+    return import.meta.env.VITE_BACKEND_URL;
+  }
+  // Default to localhost in development, production URL in production
+  return import.meta.env.MODE === "production" 
+    ? "https://ahmedabad-career-hub.onrender.com/api"
+    : "http://localhost:5000/api";
+};
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_BACKEND_URL || "https://ahmedabad-career-hub.onrender.com/api",
+  baseURL: getBaseURL(),
   withCredentials: false // enable if you use cookies for auth
 });
 

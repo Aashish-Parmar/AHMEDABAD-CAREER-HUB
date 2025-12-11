@@ -23,8 +23,9 @@ const userSchema = new mongoose.Schema({
   password:    { type: String, required: true },
   role:        { type: String, enum: ["student", "recruiter"], required: true },
   college:     { type: String },
-  company:     { type: mongoose.Schema.Types.ObjectId, ref: "Company" },
-  avatarUrl:   { type: String }, // <-- Add this line!
-});
+  companyName: { type: String }, // For recruiters - company name entered during registration
+  company:     { type: mongoose.Schema.Types.ObjectId, ref: "Company" }, // Linked after company creation
+  avatarUrl:   { type: String },
+}, { timestamps: true });
 
 module.exports = mongoose.model("User", userSchema);

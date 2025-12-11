@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import toast from "react-hot-toast";
 import { useAuth } from "../context/AuthContext";
 import api from "../api/axios";
 import Input from "../components/common/Input";
@@ -31,7 +32,7 @@ const RegisterPage = () => {
     password: "",
     role: "student",
     college: "",
-    company: "",
+    companyName: "",
   });
   const [error, setError] = useState("");
   const { login } = useAuth();
@@ -42,9 +43,7 @@ const RegisterPage = () => {
     setForm((prev) => ({
       ...prev,
       [name]: value,
-      ...(name === "role"
-        ? { college: "", company: "" }
-        : {}),
+      ...(name === "role" ? { college: "", companyName: "" } : {}),
     }));
   };
 
@@ -61,8 +60,9 @@ const RegisterPage = () => {
       if (form.role === "student") {
         payload.college = form.college;
       } else if (form.role === "recruiter") {
-        payload.company = form.company;
+        payload.companyName = form.companyName;
       }
+      const loadingToast = toast.loading("Creating your account...");
       const res = await api.post("/auth/register", payload);
       // Login user right after registration
       login({
@@ -72,17 +72,38 @@ const RegisterPage = () => {
           email: res.data.email,
           role: res.data.role,
           company: res.data.company,
+          companyName: res.data.companyName,
           college: res.data.college,
         },
         token: res.data.token,
       });
+      toast.success(`Welcome ${res.data.name}! Account created successfully.`, {
+        id: loadingToast,
+      });
       navigate("/dashboard");
     } catch (err) {
-      if (err.response && err.response.data && err.response.data.message) {
-        setError(err.response.data.message);
+      let errorMessage = "Registration failed. Please check your information.";
+      if (err.response?.data) {
+        // Handle validation errors (array of errors)
+        if (
+          err.response.data.errors &&
+          Array.isArray(err.response.data.errors)
+        ) {
+          errorMessage = err.response.data.errors.join(", ");
+          setError(errorMessage);
+        } else if (err.response.data.message) {
+          errorMessage = err.response.data.message;
+          setError(errorMessage);
+        } else {
+          setError(errorMessage);
+        }
       } else {
-        setError("Registration failed. Check your info and try again.");
+        errorMessage =
+          "Registration failed. Check your network connection and try again.";
+        setError(errorMessage);
       }
+      toast.error(errorMessage);
+      console.error("Registration error:", err);
     }
   };
 
@@ -133,7 +154,10 @@ const RegisterPage = () => {
               required
             />
             <div className="mb-4">
-              <label htmlFor="role" className="block mb-1 font-medium text-gray-700">
+              <label
+                htmlFor="role"
+                className="block mb-1 font-medium text-gray-700"
+              >
                 Role
               </label>
               <select
@@ -159,15 +183,18 @@ const RegisterPage = () => {
             )}
             {form.role === "recruiter" && (
               <Input
-                label="Company ObjectId"
-                name="company"
-                value={form.company}
+                label="Company Name"
+                name="companyName"
+                value={form.companyName}
                 onChange={handleChange}
                 className="input-focus-glow"
+                placeholder="Enter your company name"
                 required
               />
             )}
-            {error && <div className="text-red-600 mb-2 animate-shake">{error}</div>}
+            {error && (
+              <div className="text-red-600 mb-2 animate-shake">{error}</div>
+            )}
             <Button
               type="submit"
               className="w-full py-2 mt-1 bg-gradient-to-r from-blue-500 to-cyan-400 shadow-md hover:from-blue-700 hover:to-cyan-600 hover:scale-105 transition-transform duration-200 font-bold tracking-wide"
@@ -184,11 +211,6 @@ const RegisterPage = () => {
               Login
             </Link>
           </div>
-          {form.role === "recruiter" && (
-            <div className="text-xs text-gray-500 mt-2 text-center">
-              Ask an admin for the company ObjectId, or insert your company via an admin tool.
-            </div>
-          )}
         </Card>
       </div>
     </div>

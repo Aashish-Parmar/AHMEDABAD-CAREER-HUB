@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import toast from "react-hot-toast";
 import { useAuth } from "../context/AuthContext";
 import Card from "../components/common/Card";
 import Input from "../components/common/Input";
@@ -33,7 +34,9 @@ const ProfilePage = () => {
         setAvatarFile(null);
         setAlert("");
         setError("");
-      } catch {
+      } catch (err) {
+        console.error("Error loading profile:", err);
+        toast.error("Failed to load profile");
         setError("Could not load profile.");
         setEditing(false);
         // Do NOT clear profile/editProfile here!
@@ -84,7 +87,12 @@ const ProfilePage = () => {
     e.preventDefault();
     setError("");
     setAlert("");
-    if (!avatarFile) return setError("Choose a file first.");
+    if (!avatarFile) {
+      toast.error("Please select an image file");
+      return;
+    }
+    
+    const loadingToast = toast.loading("Uploading avatar...");
     try {
       const formData = new FormData();
       formData.append("avatar", avatarFile);
@@ -99,8 +107,11 @@ const ProfilePage = () => {
       setAvatarPreview(res.data.avatarUrl);
       setAvatarFile(null);
       setAlert("Avatar updated!");
-    } catch {
-      setError("Failed to upload avatar.");
+      toast.success("Avatar uploaded successfully!", { id: loadingToast });
+    } catch (err) {
+      const errorMsg = err.response?.data?.message || "Failed to upload avatar";
+      setError(errorMsg);
+      toast.error(errorMsg, { id: loadingToast });
     }
   };
 
@@ -114,10 +125,12 @@ const ProfilePage = () => {
       editProfile.name === profile.name &&
       (editProfile.role !== "student" || editProfile.college === profile.college)
     ) {
-      setAlert("No changes to update.");
+      toast.info("No changes to update");
       setEditing(false);
       return;
     }
+    
+    const loadingToast = toast.loading("Updating profile...");
     try {
       // Only send fields you allow editing
       const payload = {
@@ -133,8 +146,11 @@ const ProfilePage = () => {
       }
       setEditing(false);
       setAlert(res.data.message || "Profile updated.");
+      toast.success("Profile updated successfully!", { id: loadingToast });
     } catch (err) {
-      setError(err.response?.data?.message || "Error updating profile.");
+      const errorMsg = err.response?.data?.message || "Error updating profile";
+      setError(errorMsg);
+      toast.error(errorMsg, { id: loadingToast });
     }
   };
 
@@ -146,7 +162,7 @@ const ProfilePage = () => {
       <Card>
         <h2 className="text-2xl font-bold mb-4">My Profile</h2>
         {/* Avatar/Upload */}
-        {/* <div className="flex items-center mb-4">
+        <div className="flex items-center mb-4">
           <img
             src={
               avatarPreview ||
@@ -157,26 +173,27 @@ const ProfilePage = () => {
               )}`
             }
             alt="Avatar"
-            className="w-20 h-20 rounded-full object-cover border mr-4"
+            className="w-20 h-20 rounded-full object-cover border-2 border-blue-200 mr-4"
           />
-          <form onSubmit={handleAvatarUpload} encType="multipart/form-data">
-            <input
-              type="file"
-              accept="image/*"
-              disabled={!editing}
-              onChange={handleAvatarChange}
-              key={editing ? "enable" : "disable"}
-              style={{ fontSize: "12px", maxWidth: "140px" }}
-            />
-            <Button
-              type="submit"
-              className="ml-2 px-3 py-1 text-xs"
-              disabled={!editing || !avatarFile}
-            >
-              Upload
-            </Button>
-          </form>
-        </div> */}
+          {editing && (
+            <form onSubmit={handleAvatarUpload} encType="multipart/form-data" className="flex flex-col gap-2">
+              <input
+                type="file"
+                accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
+                onChange={handleAvatarChange}
+                className="text-sm"
+                style={{ fontSize: "12px", maxWidth: "200px" }}
+              />
+              <Button
+                type="submit"
+                className="px-3 py-1 text-xs"
+                disabled={!avatarFile}
+              >
+                Upload Avatar
+              </Button>
+            </form>
+          )}
+        </div>
         <form onSubmit={saveProfile} className="mb-3">
           <Input
             label="Name"
@@ -213,26 +230,26 @@ const ProfilePage = () => {
             value={profile.role.charAt(0).toUpperCase() + profile.role.slice(1)}
             disabled
           />
-          {/* <div className="flex gap-2 mt-2">
+          <div className="flex gap-2 mt-4">
             {editing ? (
               <>
-                <Button type="submit" className="w-full">
+                <Button type="submit" className="w-full bg-blue-500 hover:bg-blue-600">
                   Save Profile
                 </Button>
                 <Button
                   type="button"
-                  className="w-full bg-gray-300 text-gray-700"
+                  className="w-full bg-gray-300 text-gray-700 hover:bg-gray-400"
                   onClick={handleCancel}
                 >
                   Cancel
                 </Button>
               </>
             ) : (
-              <Button type="button" className="w-full" onClick={startEdit}>
+              <Button type="button" className="w-full bg-blue-500 hover:bg-blue-600" onClick={startEdit}>
                 Edit Profile
               </Button>
             )}
-          </div> */}
+          </div>
         </form>
         {alert && <div className="text-green-700 mt-2">{alert}</div>}
         {error && <div className="text-red-600 mt-2">{error}</div>}

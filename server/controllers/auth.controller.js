@@ -8,9 +8,15 @@ const jwt = require("jsonwebtoken");
 // REGISTER: Student or Recruiter
 exports.register = async (req, res) => {
   try {
-    const { name, email, password, role, college, company } = req.body;
+    const { name, email, password, role, college, companyName } = req.body;
 
-    // Check required fields
+    // Validate JWT_SECRET is set
+    if (!process.env.JWT_SECRET) {
+      console.error("ERROR: JWT_SECRET is not set in environment variables");
+      return res.status(500).json({ message: "Server configuration error" });
+    }
+
+    // Check required fields (validation middleware should catch this, but double-check)
     if (!name || !email || !password || !role) {
       return res.status(400).json({ message: "Missing required fields" });
     }
@@ -24,22 +30,14 @@ exports.register = async (req, res) => {
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Recruiter must have company (validate id and presence)
-    let companyId = company;
-    if (role === "recruiter") {
-      if (!companyId) {
-        return res.status(400).json({ message: "Recruiter must link to company" });
-      }
-      // Optionally validate the company id exists
-      const companyExists = await Company.findById(companyId);
-      if (!companyExists) {
-        return res.status(400).json({ message: "Company does not exist" });
-      }
-    }
-
     // Student must provide college
     if (role === "student" && !college) {
       return res.status(400).json({ message: "Student must provide college" });
+    }
+
+    // Recruiter must provide company name (company will be created later)
+    if (role === "recruiter" && !companyName) {
+      return res.status(400).json({ message: "Recruiter must provide company name" });
     }
 
     // Create user
@@ -49,7 +47,8 @@ exports.register = async (req, res) => {
       password: hashedPassword,
       role,
       college: role === "student" ? college : undefined,
-      company: role === "recruiter" ? companyId : undefined,
+      companyName: role === "recruiter" ? companyName.trim() : undefined,
+      company: undefined, // Will be set after company is created
     });
 
     await user.save();
@@ -68,11 +67,16 @@ exports.register = async (req, res) => {
       email: user.email,
       role: user.role,
       college: user.college,
+      companyName: user.companyName,
       company: user.company,
       token,
     });
   } catch (err) {
-    res.status(500).json({ message: "Registration error", error: err.message });
+    console.error("Registration error:", err);
+    res.status(500).json({ 
+      message: "Registration error", 
+      error: process.env.NODE_ENV === "development" ? err.message : undefined 
+    });
   }
 };
 
@@ -107,11 +111,16 @@ exports.login = async (req, res) => {
       email: user.email,
       role: user.role,
       college: user.college,
+      companyName: user.companyName,
       company: user.company,
       token,
     });
   } catch (err) {
-    res.status(500).json({ message: "Login error", error: err.message });
+    console.error("Login error:", err);
+    res.status(500).json({ 
+      message: "Login error", 
+      error: process.env.NODE_ENV === "development" ? err.message : undefined 
+    });
   }
 };
 

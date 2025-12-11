@@ -133,6 +133,7 @@
 
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import toast from "react-hot-toast";
 import { useAuth } from "../context/AuthContext";
 import api from "../api/axios";
 import Input from "../components/common/Input";
@@ -184,6 +185,7 @@ const LoginPage = () => {
     e.preventDefault();
     setError("");
 
+    const loadingToast = toast.loading("Logging in...");
     try {
       const res = await api.post("/auth/login", {
         email: form.email,
@@ -196,17 +198,17 @@ const LoginPage = () => {
           email: res.data.email,
           role: res.data.role,
           company: res.data.company,
+          companyName: res.data.companyName,
           college: res.data.college,
         },
         token: res.data.token,
       });
+      toast.success(`Welcome back, ${res.data.name}!`, { id: loadingToast });
       navigate("/dashboard");
     } catch (err) {
-      if (err.response?.data?.message) {
-        setError(err.response.data.message);
-      } else {
-        setError("Login failed. Check network and credentials.");
-      }
+      const errorMsg = err.response?.data?.message || "Login failed. Check network and credentials.";
+      setError(errorMsg);
+      toast.error(errorMsg, { id: loadingToast });
     }
   };
 

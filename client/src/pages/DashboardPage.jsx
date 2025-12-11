@@ -159,6 +159,7 @@
 // export default DashboardPage;
 
 import React, { useEffect, useState } from "react";
+import toast from "react-hot-toast";
 import { useAuth } from "../context/AuthContext";
 import Card from "../components/common/Card";
 import Button from "../components/common/Button";
@@ -197,8 +198,16 @@ const DashboardPage = () => {
         .get("/applications/mine", {
           headers: { Authorization: `Bearer ${token}` },
         })
-        .then((res) => setApps(res.data))
-        .catch(() => setApps([]))
+        .then((res) => {
+          // Handle both old format (array) and new format (object with applications and pagination)
+          const appsData = Array.isArray(res.data) ? res.data : (res.data.applications || []);
+          setApps(appsData);
+        })
+        .catch((err) => {
+          console.error("Error fetching applications:", err);
+          toast.error("Failed to load applications");
+          setApps([]);
+        })
         .finally(() => setLoading(false));
     } else if (user?.role === "recruiter") {
       api
@@ -206,9 +215,15 @@ const DashboardPage = () => {
           headers: { Authorization: `Bearer ${token}` },
         })
         .then((res) => {
-          setJobs(res.data.filter((job) => job.company?._id === user.company));
+          // Handle both old format (array) and new format (object with jobs and pagination)
+          const jobsData = Array.isArray(res.data) ? res.data : (res.data.jobs || []);
+          setJobs(jobsData.filter((job) => job.company?._id === user.company));
         })
-        .catch(() => setJobs([]))
+        .catch((err) => {
+          console.error("Error fetching jobs:", err);
+          toast.error("Failed to load jobs");
+          setJobs([]);
+        })
         .finally(() => setLoading(false));
     }
   }, [user, token]);
@@ -288,45 +303,68 @@ const DashboardPage = () => {
           {/* Recruiter Dashboard */}
           {user?.role === "recruiter" && (
             <div className="mb-6">
-              <h3 className="text-xl font-semibold mb-4 text-blue-600">
-                Your Job Postings
-              </h3>
-              {loading ? (
-                <div className="text-gray-500">Loading jobs...</div>
-              ) : jobs.length === 0 ? (
-                <div className="text-gray-400">No jobs posted yet.</div>
-              ) : (
-                <div className="space-y-4">
-                  {jobs.slice(0, 3).map((job) => (
-                    <Card
-                      key={job._id}
-                      className="p-4 border border-blue-100 rounded-lg card-hover glow-border"
-                    >
-                      <div className="font-bold text-gray-800 text-lg">
-                        {job.title}
-                      </div>
-                      <div className="text-sm text-gray-500">
-                        {job.jobType} | {job.location || "Ahmedabad"}
-                      </div>
-                      <div className="text-sm">
-                        Salary/Stipend: {job.salaryStipend}
-                      </div>
-                    </Card>
-                  ))}
+              {!user?.company ? (
+                <div className="mb-6 p-6 bg-yellow-50 border-2 border-yellow-200 rounded-lg">
+                  <h3 className="text-lg font-semibold text-yellow-800 mb-2">
+                    ⚠️ Company Profile Required
+                  </h3>
+                  <p className="text-yellow-700 mb-4">
+                    You need to create your company profile before you can post jobs.
+                    {user?.companyName && (
+                      <span className="block mt-1">
+                        Your company name: <strong>{user.companyName}</strong>
+                      </span>
+                    )}
+                  </p>
+                  <Link to="/create-company">
+                    <Button className="bg-yellow-500 hover:bg-yellow-600 text-white">
+                      Create Company Profile
+                    </Button>
+                  </Link>
                 </div>
+              ) : (
+                <>
+                  <h3 className="text-xl font-semibold mb-4 text-blue-600">
+                    Your Job Postings
+                  </h3>
+                  {loading ? (
+                    <div className="text-gray-500">Loading jobs...</div>
+                  ) : jobs.length === 0 ? (
+                    <div className="text-gray-400">No jobs posted yet.</div>
+                  ) : (
+                    <div className="space-y-4">
+                      {jobs.slice(0, 3).map((job) => (
+                        <Card
+                          key={job._id}
+                          className="p-4 border border-blue-100 rounded-lg card-hover glow-border"
+                        >
+                          <div className="font-bold text-gray-800 text-lg">
+                            {job.title}
+                          </div>
+                          <div className="text-sm text-gray-500">
+                            {job.jobType} | {job.location || "Ahmedabad"}
+                          </div>
+                          <div className="text-sm">
+                            Salary/Stipend: {job.salaryStipend}
+                          </div>
+                        </Card>
+                      ))}
+                    </div>
+                  )}
+                  <div className="mt-5 flex gap-3 flex-wrap">
+                    <Link to="/post-job">
+                      <Button className="bg-blue-500 hover:bg-blue-600 transition-all duration-200">
+                        Post New Job
+                      </Button>
+                    </Link>
+                    <Link to="/jobs">
+                      <Button className="bg-cyan-500 hover:bg-cyan-600 transition-all duration-200">
+                        View All Jobs
+                      </Button>
+                    </Link>
+                  </div>
+                </>
               )}
-              <div className="mt-5 flex gap-3 flex-wrap">
-                <Link to="/post-job">
-                  <Button className="bg-blue-500 hover:bg-blue-600 transition-all duration-200">
-                    Post New Job
-                  </Button>
-                </Link>
-                <Link to="/jobs">
-                  <Button className="bg-cyan-500 hover:bg-cyan-600 transition-all duration-200">
-                    View All Jobs
-                  </Button>
-                </Link>
-              </div>
             </div>
           )}
 

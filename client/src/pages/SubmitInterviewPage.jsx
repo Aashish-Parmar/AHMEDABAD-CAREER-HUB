@@ -224,6 +224,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
+import toast from "react-hot-toast";
 import { useAuth } from "../context/AuthContext";
 import api from "../api/axios";
 import Card from "../components/common/Card";
@@ -239,6 +240,9 @@ const SubmitInterviewPage = () => {
   const preSelectedCompany = params.get("companyId");
 
   const [companies, setCompanies] = useState([]);
+  const [filteredCompanies, setFilteredCompanies] = useState([]);
+  const [companySearch, setCompanySearch] = useState("");
+  const [showCompanyDropdown, setShowCompanyDropdown] = useState(false);
   const [form, setForm] = useState({
     company: preSelectedCompany || "",
     interviewDate: "",
@@ -250,12 +254,81 @@ const SubmitInterviewPage = () => {
   const [alert, setAlert] = useState("");
 
   useEffect(() => {
-    api.get("/companies").then((res) => setCompanies(res.data));
+    const fetchAllCompanies = async () => {
+      try {
+        // First, fetch first page to get total count
+        const firstPage = await api.get("/companies?page=1&limit=1000");
+        
+        if (firstPage.data.pagination) {
+          const totalItems = firstPage.data.pagination.totalItems;
+          const itemsPerPage = firstPage.data.pagination.itemsPerPage;
+          const totalPages = firstPage.data.pagination.totalPages;
+          
+          let allCompanies = firstPage.data.companies || [];
+          
+          // If there are more pages, fetch them all
+          if (totalPages > 1) {
+            const promises = [];
+            for (let page = 2; page <= totalPages; page++) {
+              promises.push(api.get(`/companies?page=${page}&limit=1000`));
+            }
+            const results = await Promise.all(promises);
+            results.forEach(result => {
+              if (result.data.companies) {
+                allCompanies = [...allCompanies, ...result.data.companies];
+              }
+            });
+          }
+          
+          // Sort companies alphabetically for better UX
+          allCompanies.sort((a, b) => 
+            (a.companyName || "").localeCompare(b.companyName || "")
+          );
+          
+          setCompanies(allCompanies);
+          setFilteredCompanies(allCompanies);
+        } else {
+          // Fallback for old format
+          const companies = Array.isArray(firstPage.data) 
+            ? firstPage.data 
+            : (firstPage.data.companies || []);
+          companies.sort((a, b) => 
+            (a.companyName || "").localeCompare(b.companyName || "")
+          );
+          setCompanies(companies);
+          setFilteredCompanies(companies);
+        }
+      } catch (err) {
+        console.error("Error fetching companies:", err);
+        toast.error("Failed to load companies");
+        setCompanies([]);
+      }
+    };
+    
+    fetchAllCompanies();
   }, []);
 
   const companyNameLookup = (id) => {
     const company = companies.find((c) => c._id === id);
     return company ? company.companyName : id;
+  };
+
+  // Filter companies based on search
+  useEffect(() => {
+    if (!companySearch.trim()) {
+      setFilteredCompanies(companies);
+    } else {
+      const filtered = companies.filter((company) =>
+        company.companyName?.toLowerCase().includes(companySearch.toLowerCase())
+      );
+      setFilteredCompanies(filtered);
+    }
+  }, [companySearch, companies]);
+
+  const handleCompanySelect = (companyId, companyName) => {
+    setForm((prev) => ({ ...prev, company: companyId }));
+    setCompanySearch(companyName);
+    setShowCompanyDropdown(false);
   };
 
   const handleRoundChange = (idx, e) => {
@@ -284,6 +357,18 @@ const SubmitInterviewPage = () => {
     e.preventDefault();
     setError("");
     setAlert("");
+    
+    // Frontend validation
+    if (!form.company) {
+      toast.error("Please select a company");
+      return;
+    }
+    if (form.rounds.some(r => !r.roundType || !r.questionsAsked)) {
+      toast.error("Please fill all round details");
+      return;
+    }
+    
+    const loadingToast = toast.loading("Submitting interview experience...");
     try {
       const payload = {
         ...form,
@@ -302,9 +387,12 @@ const SubmitInterviewPage = () => {
         headers: { Authorization: `Bearer ${token}` },
       });
       setAlert("🎉 Experience submitted successfully!");
+      toast.success("Interview experience submitted successfully!", { id: loadingToast });
       setTimeout(() => navigate("/dashboard"), 1200);
     } catch (err) {
-      setError(err.response?.data?.message || "❌ Submission failed.");
+      const errorMsg = err.response?.data?.message || "Submission failed";
+      setError(errorMsg);
+      toast.error(errorMsg, { id: loadingToast });
     }
   };
 
@@ -318,20 +406,60 @@ const SubmitInterviewPage = () => {
           <div className="space-y-2">
             <label className="block font-medium text-gray-700">Company</label>
             {!preSelectedCompany ? (
-              <select
-                name="company"
-                value={form.company}
-                onChange={handleChange}
-                required
-                className="border px-3 py-2 rounded w-full bg-white"
-              >
-                <option value="">-- Select Company --</option>
-                {companies.map((c) => (
-                  <option value={c._id} key={c._id}>
-                    {c.companyName}
-                  </option>
-                ))}
-              </select>
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="🔍 Search and select company..."
+                  value={companySearch}
+                  onChange={(e) => {
+                    setCompanySearch(e.target.value);
+                    setShowCompanyDropdown(true);
+                  }}
+                  onFocus={() => setShowCompanyDropdown(true)}
+                  className="border px-3 py-2 rounded w-full bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  required
+                />
+                {showCompanyDropdown && filteredCompanies.length > 0 && (
+                  <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto">
+                    {filteredCompanies.map((c) => (
+                      <div
+                        key={c._id}
+                        onClick={() => handleCompanySelect(c._id, c.companyName)}
+                        className={`px-4 py-2 cursor-pointer hover:bg-blue-50 ${
+                          form.company === c._id ? "bg-blue-100" : ""
+                        }`}
+                      >
+                        <div className="font-medium text-gray-900">{c.companyName}</div>
+                        {c.address && (
+                          <div className="text-xs text-gray-500">📍 {c.address}</div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {showCompanyDropdown && companySearch && filteredCompanies.length === 0 && (
+                  <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg p-4 text-center text-gray-500">
+                    No companies found matching "{companySearch}"
+                  </div>
+                )}
+                <input
+                  type="hidden"
+                  name="company"
+                  value={form.company}
+                  required
+                />
+                {form.company && (
+                  <div className="mt-2 text-sm text-green-600">
+                    ✓ Selected: {companyNameLookup(form.company)}
+                  </div>
+                )}
+                {showCompanyDropdown && (
+                  <div
+                    className="fixed inset-0 z-40"
+                    onClick={() => setShowCompanyDropdown(false)}
+                  ></div>
+                )}
+              </div>
             ) : (
               <>
                 <input type="hidden" name="company" value={form.company} />
