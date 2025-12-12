@@ -1,11 +1,11 @@
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import toast from "react-hot-toast";
-import { useAuth } from "../context/AuthContext";
 import api from "../api/axios";
 import Input from "../components/common/Input";
 import Button from "../components/common/Button";
 import Card from "../components/common/Card";
+import OTPVerificationModal from "../components/auth/OTPVerificationModal";
 
 // -- Custom animation styles --
 const styles = `
@@ -35,7 +35,8 @@ const RegisterPage = () => {
     companyName: "",
   });
   const [error, setError] = useState("");
-  const { login } = useAuth();
+  const [showOTPModal, setShowOTPModal] = useState(false);
+  const [registeredEmail, setRegisteredEmail] = useState("");
   const navigate = useNavigate();
 
   const handleChange = (e) => {
@@ -64,23 +65,18 @@ const RegisterPage = () => {
       }
       const loadingToast = toast.loading("Creating your account...");
       const res = await api.post("/auth/register", payload);
-      // Login user right after registration
-      login({
-        user: {
-          _id: res.data.userId,
-          name: res.data.name,
-          email: res.data.email,
-          role: res.data.role,
-          company: res.data.company,
-          companyName: res.data.companyName,
-          college: res.data.college,
-        },
-        token: res.data.token,
-      });
-      toast.success(`Welcome ${res.data.name}! Account created successfully.`, {
-        id: loadingToast,
-      });
-      navigate("/dashboard");
+
+      // Registration successful - show OTP modal
+      toast.success(
+        "Registration successful! Please check your email for OTP verification.",
+        {
+          id: loadingToast,
+        }
+      );
+
+      // Store email and show OTP modal
+      setRegisteredEmail(res.data.email);
+      setShowOTPModal(true);
     } catch (err) {
       let errorMessage = "Registration failed. Please check your information.";
       if (err.response?.data) {
@@ -213,6 +209,17 @@ const RegisterPage = () => {
           </div>
         </Card>
       </div>
+
+      {/* OTP Verification Modal */}
+      <OTPVerificationModal
+        isOpen={showOTPModal}
+        onClose={() => setShowOTPModal(false)}
+        email={registeredEmail}
+        onVerificationSuccess={() => {
+          setShowOTPModal(false);
+          navigate("/dashboard");
+        }}
+      />
     </div>
   );
 };

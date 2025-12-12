@@ -26,6 +26,7 @@ const userSchema = new mongoose.Schema({
   companyName: { type: String }, // For recruiters - company name entered during registration
   company:     { type: mongoose.Schema.Types.ObjectId, ref: "Company" }, // Linked after company creation
   avatarUrl:   { type: String },
+  isEmailVerified: { type: Boolean, default: false, required: true },
 }, { timestamps: true });
 
 module.exports = mongoose.model("User", userSchema);

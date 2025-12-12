@@ -206,9 +206,21 @@ const LoginPage = () => {
       toast.success(`Welcome back, ${res.data.name}!`, { id: loadingToast });
       navigate("/dashboard");
     } catch (err) {
-      const errorMsg = err.response?.data?.message || "Login failed. Check network and credentials.";
-      setError(errorMsg);
-      toast.error(errorMsg, { id: loadingToast });
+      // Handle email not verified error (403)
+      if (
+        err.response?.status === 403 &&
+        err.response?.data?.message?.includes("Email not verified")
+      ) {
+        const errorMsg = err.response.data.message;
+        setError(errorMsg);
+        toast.error(errorMsg, { id: loadingToast, duration: 5000 });
+      } else {
+        const errorMsg =
+          err.response?.data?.message ||
+          "Login failed. Check network and credentials.";
+        setError(errorMsg);
+        toast.error(errorMsg, { id: loadingToast });
+      }
     }
   };
 
@@ -251,7 +263,23 @@ const LoginPage = () => {
               onChange={handleChange}
             />
             {error && (
-              <div className="text-red-600 mb-2 text-sm animate-pulse">{error}</div>
+              <div className="mb-3">
+                <div className="text-red-600 mb-2 text-sm animate-pulse">
+                  {error}
+                </div>
+                {error.includes("Email not verified") && (
+                  <div className="text-center">
+                    <Link
+                      to={`/verify-email?email=${encodeURIComponent(
+                        form.email
+                      )}`}
+                      className="text-blue-600 hover:text-blue-800 text-sm font-semibold underline"
+                    >
+                      Verify Email Now
+                    </Link>
+                  </div>
+                )}
+              </div>
             )}
             <Button
               type="submit"
@@ -261,7 +289,13 @@ const LoginPage = () => {
             </Button>
           </form>
 
-          <div className="text-sm mt-6 text-center">
+          <div className="text-sm mt-4 text-center">
+            <Link
+              to="/forgot-password"
+              className="text-blue-600 hover:text-blue-800 text-sm font-semibold underline block mb-3"
+            >
+              Forgot Password?
+            </Link>
             <span className="text-gray-600">Don't have an account? </span>
             <Link
               to="/register"

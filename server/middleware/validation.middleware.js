@@ -133,3 +133,71 @@ exports.validateCompany = (req, res, next) => {
   next();
 };
 
+// Validate email verification data
+exports.validateVerifyEmail = (req, res, next) => {
+  const { email, otp } = req.body;
+  const errors = [];
+
+  if (!email || !isValidEmail(email)) {
+    errors.push("Valid email is required");
+  }
+
+  if (!otp) {
+    errors.push("OTP is required");
+  } else if (!/^\d{6}$/.test(otp)) {
+    errors.push("OTP must be a 6-digit number");
+  }
+
+  if (errors.length > 0) {
+    return res.status(400).json({ message: "Validation failed", errors });
+  }
+
+  next();
+};
+
+// Validate forgot password data
+exports.validateForgotPassword = (req, res, next) => {
+  const { email } = req.body;
+  const errors = [];
+
+  if (!email || !isValidEmail(email)) {
+    errors.push("Valid email is required");
+  }
+
+  if (errors.length > 0) {
+    return res.status(400).json({ message: "Validation failed", errors });
+  }
+
+  next();
+};
+
+// Validate reset password data
+exports.validateResetPassword = (req, res, next) => {
+  const { email, otp, newPassword } = req.body;
+  const errors = [];
+
+  if (!email || !isValidEmail(email)) {
+    errors.push("Valid email is required");
+  }
+
+  if (!otp) {
+    errors.push("OTP is required");
+  } else if (!/^\d{6}$/.test(otp)) {
+    errors.push("OTP must be a 6-digit number");
+  }
+
+  if (!newPassword) {
+    errors.push("New password is required");
+  } else if (newPassword.length < 8) {
+    errors.push("Password must be at least 8 characters long");
+  } else if (!isStrongPassword(newPassword)) {
+    errors.push("Password must contain at least one uppercase letter, one lowercase letter, and one number");
+  }
+
+  if (errors.length > 0) {
+    return res.status(400).json({ message: "Validation failed", errors });
+  }
+
+  next();
+};
+
