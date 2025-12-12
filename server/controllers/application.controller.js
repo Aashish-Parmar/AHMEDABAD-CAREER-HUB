@@ -1,8 +1,13 @@
 const Application = require("../models/application.model");
+const Job = require("../models/job.model");
+const User = require("../models/user.model");
 
 // Student applies to a job
 exports.applyToJob = async (req, res) => {
   try {
+    if (!req.user) {
+      return res.status(401).json({ message: "Authentication required" });
+    }
     const { job } = req.body;
 
     if (!job) {
@@ -29,6 +34,9 @@ exports.applyToJob = async (req, res) => {
 // Student sees their applications
 exports.getMyApplications = async (req, res) => {
   try {
+    if (!req.user) {
+      return res.status(401).json({ message: "Authentication required" });
+    }
     // Pagination
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
@@ -67,6 +75,9 @@ exports.getMyApplications = async (req, res) => {
 // Recruiter: Get applications for a specific job
 exports.getJobApplications = async (req, res) => {
   try {
+    if (!req.user) {
+      return res.status(401).json({ message: "Authentication required" });
+    }
     if (req.user.role !== "recruiter") {
       return res
         .status(403)
@@ -74,8 +85,6 @@ exports.getJobApplications = async (req, res) => {
     }
 
     const { jobId } = req.params;
-    const Job = require("../models/job.model");
-    const User = require("../models/user.model");
 
     // Verify job exists and belongs to recruiter's company
     const job = await Job.findById(jobId).populate("company");
@@ -88,11 +97,9 @@ exports.getJobApplications = async (req, res) => {
       req.user.company &&
       req.user.company.toString() !== job.company._id.toString()
     ) {
-      return res
-        .status(403)
-        .json({
-          message: "You can only view applications for your company's jobs",
-        });
+      return res.status(403).json({
+        message: "You can only view applications for your company's jobs",
+      });
     }
 
     // Pagination
@@ -143,6 +150,9 @@ exports.getJobApplications = async (req, res) => {
 // Recruiter: Get all applications for recruiter's company
 exports.getCompanyApplications = async (req, res) => {
   try {
+    if (!req.user) {
+      return res.status(401).json({ message: "Authentication required" });
+    }
     if (req.user.role !== "recruiter") {
       return res
         .status(403)
@@ -214,6 +224,9 @@ exports.getCompanyApplications = async (req, res) => {
 // Recruiter: Update application status
 exports.updateApplicationStatus = async (req, res) => {
   try {
+    if (!req.user) {
+      return res.status(401).json({ message: "Authentication required" });
+    }
     if (req.user.role !== "recruiter") {
       return res
         .status(403)
@@ -235,13 +248,9 @@ exports.updateApplicationStatus = async (req, res) => {
       "hired",
     ];
     if (!validStatuses.includes(status)) {
-      return res
-        .status(400)
-        .json({
-          message: `Invalid status. Must be one of: ${validStatuses.join(
-            ", "
-          )}`,
-        });
+      return res.status(400).json({
+        message: `Invalid status. Must be one of: ${validStatuses.join(", ")}`,
+      });
     }
 
     const application = await Application.findById(id).populate({
@@ -258,11 +267,9 @@ exports.updateApplicationStatus = async (req, res) => {
       req.user.company &&
       req.user.company.toString() !== application.job.company._id.toString()
     ) {
-      return res
-        .status(403)
-        .json({
-          message: "You can only update applications for your company's jobs",
-        });
+      return res.status(403).json({
+        message: "You can only update applications for your company's jobs",
+      });
     }
 
     application.status = status;
@@ -284,6 +291,9 @@ exports.updateApplicationStatus = async (req, res) => {
 // Recruiter: Get application details
 exports.getApplicationById = async (req, res) => {
   try {
+    if (!req.user) {
+      return res.status(401).json({ message: "Authentication required" });
+    }
     if (req.user.role !== "recruiter") {
       return res
         .status(403)
@@ -311,11 +321,9 @@ exports.getApplicationById = async (req, res) => {
       req.user.company &&
       req.user.company.toString() !== application.job.company._id.toString()
     ) {
-      return res
-        .status(403)
-        .json({
-          message: "You can only view applications for your company's jobs",
-        });
+      return res.status(403).json({
+        message: "You can only view applications for your company's jobs",
+      });
     }
 
     res.json(application);

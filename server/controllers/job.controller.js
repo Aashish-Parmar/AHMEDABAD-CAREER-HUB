@@ -4,6 +4,9 @@ const Company = require("../models/company.model");
 // Recruiters - Create a new job/internship posting
 exports.createJob = async (req, res) => {
   try {
+    if (!req.user) {
+      return res.status(401).json({ message: "Authentication required" });
+    }
     if (req.user.role !== "recruiter") {
       return res.status(403).json({ message: "Only recruiters can post jobs" });
     }
@@ -115,6 +118,9 @@ exports.getJobById = async (req, res) => {
 // Recruiters - Update a job they own
 exports.updateJob = async (req, res) => {
   try {
+    if (!req.user) {
+      return res.status(401).json({ message: "Authentication required" });
+    }
     if (req.user.role !== "recruiter") {
       return res
         .status(403)
@@ -192,6 +198,9 @@ exports.updateJob = async (req, res) => {
 // Recruiters - Delete a job they own
 exports.deleteJob = async (req, res) => {
   try {
+    if (!req.user) {
+      return res.status(401).json({ message: "Authentication required" });
+    }
     const job = await Job.findById(req.params.id).populate("company");
     if (!job) return res.status(404).json({ message: "Job not found" });
 

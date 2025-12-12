@@ -36,9 +36,8 @@ const MyCompanyPage = () => {
   const fetchCompany = async () => {
     setLoading(true);
     try {
-      const res = await api.get("/companies/my", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      // Axios interceptor handles Authorization header automatically
+      const res = await api.get("/companies/my");
       setCompany(res.data.company);
       setStatistics(res.data.statistics);
       setForm({
@@ -53,6 +52,10 @@ const MyCompanyPage = () => {
       if (err.response?.status === 404) {
         // No company linked, redirect to create
         navigate("/create-company");
+      } else if (err.response?.status === 401) {
+        // Authentication error
+        toast.error("Please login again");
+        // Optionally logout and redirect to login
       } else {
         console.error("Error fetching company:", err);
         toast.error("Failed to load company details");
@@ -101,7 +104,10 @@ const MyCompanyPage = () => {
         logoUrl: form.logoUrl.trim() || undefined,
         address: form.address.trim(),
         techStack: form.techStack
-          ? form.techStack.split(",").map((s) => s.trim()).filter(Boolean)
+          ? form.techStack
+              .split(",")
+              .map((s) => s.trim())
+              .filter(Boolean)
           : [],
       };
 
@@ -114,13 +120,18 @@ const MyCompanyPage = () => {
       toast.success("Company updated successfully!", { id: loadingToast });
     } catch (err) {
       const errorMsg =
-        err.response?.data?.message || "Failed to update company. Please try again.";
+        err.response?.data?.message ||
+        "Failed to update company. Please try again.";
       toast.error(errorMsg, { id: loadingToast });
     }
   };
 
   const handleDelete = async () => {
-    if (!window.confirm("Are you sure you want to delete your company? This action cannot be undone and you'll need to create a new company profile.")) {
+    if (
+      !window.confirm(
+        "Are you sure you want to delete your company? This action cannot be undone and you'll need to create a new company profile."
+      )
+    ) {
       return;
     }
 
@@ -134,7 +145,8 @@ const MyCompanyPage = () => {
       navigate("/create-company");
     } catch (err) {
       const errorMsg =
-        err.response?.data?.message || "Failed to delete company. Please try again.";
+        err.response?.data?.message ||
+        "Failed to delete company. Please try again.";
       toast.error(errorMsg, { id: loadingToast });
     }
   };
@@ -162,7 +174,9 @@ const MyCompanyPage = () => {
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-2xl font-bold">My Company</h2>
           <Link to="/recruiter-dashboard">
-            <Button className="bg-gray-500 hover:bg-gray-600">Back to Dashboard</Button>
+            <Button className="bg-gray-500 hover:bg-gray-600">
+              Back to Dashboard
+            </Button>
           </Link>
         </div>
 
@@ -171,11 +185,15 @@ const MyCompanyPage = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
             <div className="bg-blue-50 p-4 rounded-lg">
               <div className="text-sm text-gray-600">Jobs Posted</div>
-              <div className="text-2xl font-bold text-blue-600">{statistics.jobsPosted}</div>
+              <div className="text-2xl font-bold text-blue-600">
+                {statistics.jobsPosted}
+              </div>
             </div>
             <div className="bg-green-50 p-4 rounded-lg">
               <div className="text-sm text-gray-600">Applications Received</div>
-              <div className="text-2xl font-bold text-green-600">{statistics.applicationsReceived}</div>
+              <div className="text-2xl font-bold text-green-600">
+                {statistics.applicationsReceived}
+              </div>
             </div>
           </div>
         )}
@@ -198,14 +216,18 @@ const MyCompanyPage = () => {
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Company Name
                 </label>
-                <div className="text-lg font-semibold text-gray-900">{company.companyName}</div>
+                <div className="text-lg font-semibold text-gray-900">
+                  {company.companyName}
+                </div>
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Description
                 </label>
-                <div className="text-gray-700 whitespace-pre-wrap">{company.description}</div>
+                <div className="text-gray-700 whitespace-pre-wrap">
+                  {company.description}
+                </div>
               </div>
 
               {company.website && (
@@ -329,10 +351,7 @@ const MyCompanyPage = () => {
             </div>
 
             <div className="flex gap-2 mt-6">
-              <Button
-                type="submit"
-                className="bg-blue-500 hover:bg-blue-600"
-              >
+              <Button type="submit" className="bg-blue-500 hover:bg-blue-600">
                 Save Changes
               </Button>
               <Button
@@ -351,4 +370,3 @@ const MyCompanyPage = () => {
 };
 
 export default MyCompanyPage;
-

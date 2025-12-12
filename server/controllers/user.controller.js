@@ -38,6 +38,9 @@ const fs = require("fs");
 // Get current user's profile
 exports.getProfile = async (req, res) => {
   try {
+    if (!req.user) {
+      return res.status(401).json({ message: "Authentication required" });
+    }
     // req.user is the full user document now
     // Optionally populate company
     const user = await User.findById(req.user._id)
@@ -61,6 +64,9 @@ exports.getProfile = async (req, res) => {
 
 exports.updateProfile = async (req, res) => {
   try {
+    if (!req.user) {
+      return res.status(401).json({ message: "Authentication required" });
+    }
     const updates = {};
     if (req.body.name) updates.name = req.body.name;
     if (req.user.role === "student" && req.body.college) updates.college = req.body.college;
@@ -99,6 +105,9 @@ const storage = multer.diskStorage({
     cb(null, dir);
   },
   filename: (req, file, cb) => {
+    if (!req.user) {
+      return cb(new Error("Authentication required"), null);
+    }
     const ext = path.extname(file.originalname);
     cb(null, req.user._id + "-" + Date.now() + ext);
   }
@@ -121,6 +130,9 @@ exports.avatarMulter = upload.single("avatar");
 
 exports.uploadAvatar = async (req, res) => {
   try {
+    if (!req.user) {
+      return res.status(401).json({ message: "Authentication required" });
+    }
     if (!req.file) {
       return res.status(400).json({ message: "No file uploaded" });
     }
